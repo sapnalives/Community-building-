@@ -167,23 +167,14 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getDatabase, ref, onValue, push, remove, update }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-// ── Debug: show any JS error directly on the page ────────────────────────────
+// Log unexpected errors to the console (for developer debugging) without
+// showing anything to regular users.
 window.addEventListener('error', (e) => {
-  showDebug('Error: ' + e.message + (e.filename ? ` (${e.filename}:${e.lineno})` : ''));
+  console.error('Error:', e.message, e.filename, e.lineno);
 });
 window.addEventListener('unhandledrejection', (e) => {
-  showDebug('Promise error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+  console.error('Promise error:', e.reason);
 });
-function showDebug(msg){
-  let el = document.getElementById('debugBox');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'debugBox';
-    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#f06262;color:#fff;font-size:12px;padding:10px;z-index:9999;white-space:pre-wrap;font-family:monospace';
-    document.body.appendChild(el);
-  }
-  el.textContent += (el.textContent ? '\n' : '') + msg;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔧 REPLACE THIS with your Firebase project config (free Spark plan, no card)
@@ -624,9 +615,8 @@ try{
   fb.href = FEEDBACK_URL;
   fb.addEventListener('click', ()=> logEvent('feedback_click'));
 
-  showDebug('✓ Buttons wired up successfully');
 }catch(e){
-  showDebug('Setup error: ' + e.message);
+  console.error('Setup error:', e.message);
 }
 
 // ── Boot sequence (runs after all functions above are defined) ───────────────

@@ -109,13 +109,20 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
   <div class="sheet card2">
     <div class="stitle">Group <button class="xbtn" id="closeGroupBtn" style="display:none">✕</button></div>
     <div id="currentGroupBox" style="display:none;margin-bottom:14px">
-      <div class="fl"><label>Current group — invite others with this link</label>
+      <div class="fl"><label>Name this group (e.g. matches your WhatsApp group)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="groupNameIn" type="text" maxlength="30" placeholder="e.g. Ballet Moms" style="flex:1">
+          <button class="sbtn" id="saveGroupNameBtn" style="width:auto;margin:0;padding:10px 14px">Save</button>
+        </div>
+      </div>
+      <div class="fl"><label>Invite link for this group</label>
         <div style="display:flex;gap:8px;align-items:center">
           <div id="currentGroupCode" style="flex:1;background:var(--surf2);border:1px solid var(--border);padding:10px 12px;border-radius:9px;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
           <button class="sbtn" id="copyGroupLinkBtn" style="width:auto;margin:0;padding:10px 14px">📋</button>
         </div>
       </div>
-      <div style="text-align:center;color:var(--muted);font-size:.78rem;margin:14px 0">— or switch to a different group —</div>
+      <div id="myGroupsList" style="margin:14px 0"></div>
+      <div style="text-align:center;color:var(--muted);font-size:.78rem;margin:14px 0">— or join/create another —</div>
     </div>
     <div class="fl"><label>Have a group code? Enter it to join</label>
       <input id="groupCodeIn" type="text" maxlength="40" placeholder="e.g. family2026">
@@ -164,7 +171,7 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, onValue, push, remove, update }
+import { getDatabase, ref, onValue, push, remove, update, set }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 // Log unexpected errors to the console (for developer debugging) without
@@ -241,18 +248,20 @@ function groupLink(code){
 }
 let groupCode = getGroupFromUrl();
 let myGroups = JSON.parse(localStorage.getItem('op_groups') || '[]');
+let groupNames = {}; // { code: displayName }
 
 function saveMyGroups(){ localStorage.setItem('op_groups', JSON.stringify(myGroups)); }
 function addToMyGroups(code){
   if(code && !myGroups.includes(code)){ myGroups.push(code); saveMyGroups(); }
 }
+function displayName(code){ return groupNames[code] || code; }
 function getEvents(){
   if(viewMode==='all') return myGroups.flatMap(c => eventsByGroup[c] || []);
   return eventsByGroup[groupCode] || [];
 }
 
 function updateGroupLabel(){
-  document.getElementById('groupLabel').textContent = groupCode ? `🔑 ${groupCode}` : '';
+  document.getElementById('groupLabel').textContent = groupCode ? `🔑 ${displayName(groupCode)}` : '';
 }
 
 function updateViewToggle(){
@@ -261,7 +270,7 @@ function updateViewToggle(){
   if(myGroups.length>1){
     row.style.display='block';
     btn.textContent = viewMode==='all'
-      ? `👁 Showing all ${myGroups.length} groups — tap to view only "${groupCode}"`
+      ? `👁 Showing all ${myGroups.length} groups — tap to view only "${displayName(groupCode)}"`
       : `📋 Show all my groups (${myGroups.length})`;
   } else {
     row.style.display='none';
@@ -321,6 +330,14 @@ function subscribeGroup(code){
     setConn('live');
     window.render();
   }, err => { console.error(err); setConn('err'); });
+
+  // Also subscribe to this group's display name (shared, so everyone sees the same name)
+  onValue(ref(db, `groups/${code}/_meta/name`), snap => {
+    const name = snap.val();
+    if(name) groupNames[code] = name; else delete groupNames[code];
+    updateGroupLabel();
+    window.render();
+  });
 }
 
 function connectFirebase(){
@@ -390,7 +407,7 @@ window.render = function render(){
             ${ev.time?`<span>🕐 ${fmtTime(ev.time)}</span>`:''}
             ${ev.place?`<span>📍 ${ev.place}</span>`:''}
             <span>by ${ev.addedBy}</span>
-            ${viewMode==='all'?`<span>🔑 ${ev.groupCode}</span>`:''}
+            ${viewMode==='all'?`<span>🔑 ${displayName(ev.groupCode)}</span>`:''}
           </div>
         </div>
       </div>
@@ -532,11 +549,35 @@ window.setGroup = function(code, isCreate){
     }).catch(()=>{
       window.toast(`Group created: ${code}`);
     });
+    setTimeout(window.openGroupSwitch, 700); // prompt to name the new group
   } else {
-    window.toast(`Joined group: ${code}`);
+    window.toast(`Switched to: ${displayName(code)}`);
   }
 
   if(!userName) setTimeout(window.openName,500);
+}
+
+function renderMyGroupsList(){
+  const el = document.getElementById('myGroupsList');
+  if(myGroups.length<=1){ el.innerHTML=''; return; }
+  el.innerHTML = '<label style="display:block;margin-bottom:8px;color:var(--muted);font-size:.8rem">Your groups</label>' +
+    myGroups.map(c => `
+      <button class="sbtn" data-switch-group="${c}" style="background:${c===groupCode?'var(--accent)':'var(--surf2)'};color:${c===groupCode?'#0f0f13':'var(--text)'};margin-bottom:8px;text-align:left">
+        ${c===groupCode?'✓ ':''}${displayName(c)}
+      </button>
+    `).join('');
+}
+
+window.saveGroupName = function(){
+  const name = document.getElementById('groupNameIn').value.trim().slice(0,30);
+  if(!groupCode || !db) return;
+  set(ref(db, `groups/${groupCode}/_meta/name`), name || null).then(()=>{
+    if(name) groupNames[groupCode]=name; else delete groupNames[groupCode];
+    updateGroupLabel();
+    renderMyGroupsList();
+    window.render();
+    window.toast(name ? 'Group name saved ✓' : 'Group name cleared');
+  }).catch(()=> window.toast('Could not save name'));
 }
 
 window.openGroupSwitch = function(){
@@ -544,7 +585,9 @@ window.openGroupSwitch = function(){
   if(groupCode){
     box.style.display='block';
     document.getElementById('currentGroupCode').textContent = groupLink(groupCode);
+    document.getElementById('groupNameIn').value = groupNames[groupCode] || '';
     document.getElementById('closeGroupBtn').style.display='';
+    renderMyGroupsList();
   } else {
     box.style.display='none';
     document.getElementById('closeGroupBtn').style.display='none';
@@ -598,6 +641,14 @@ try{
     navigator.clipboard?.writeText(groupLink(groupCode)).then(()=>{
       window.toast('Link copied ✓');
     }).catch(()=>{ window.toast('Could not copy — long-press to copy manually'); });
+  });
+  document.getElementById('saveGroupNameBtn').addEventListener('click', window.saveGroupName);
+  document.getElementById('groupNameIn').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') window.saveGroupName();
+  });
+  document.getElementById('myGroupsList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-switch-group]');
+    if(btn) window.setGroup(btn.dataset.switchGroup, false);
   });
 
   // Event delegation for dynamically-rendered RSVP / delete / share buttons

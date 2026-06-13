@@ -121,9 +121,9 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
           <button class="sbtn" id="copyGroupLinkBtn" style="width:auto;margin:0;padding:10px 14px">📋</button>
         </div>
       </div>
-      <div id="myGroupsList" style="margin:14px 0"></div>
-      <div style="text-align:center;color:var(--muted);font-size:.78rem;margin:14px 0">— or join/create another —</div>
     </div>
+    <div id="myGroupsList" style="margin-bottom:14px"></div>
+    <div id="joinCreateDivider" style="text-align:center;color:var(--muted);font-size:.78rem;margin:14px 0;display:none">— or join/create another —</div>
     <div class="fl"><label>Have a group code? Enter it to join</label>
       <input id="groupCodeIn" type="text" maxlength="40" placeholder="e.g. family2026">
     </div>
@@ -336,6 +336,7 @@ function subscribeGroup(code){
     const name = snap.val();
     if(name) groupNames[code] = name; else delete groupNames[code];
     updateGroupLabel();
+    renderMyGroupsList();
     window.render();
   });
 }
@@ -559,7 +560,9 @@ window.setGroup = function(code, isCreate){
 
 function renderMyGroupsList(){
   const el = document.getElementById('myGroupsList');
-  if(myGroups.length<=1){ el.innerHTML=''; return; }
+  const divider = document.getElementById('joinCreateDivider');
+  if(myGroups.length===0){ el.innerHTML=''; divider.style.display='none'; return; }
+  divider.style.display='block';
   el.innerHTML = '<label style="display:block;margin-bottom:8px;color:var(--muted);font-size:.8rem">Your groups</label>' +
     myGroups.map(c => `
       <button class="sbtn" data-switch-group="${c}" style="background:${c===groupCode?'var(--accent)':'var(--surf2)'};color:${c===groupCode?'#0f0f13':'var(--text)'};margin-bottom:8px;text-align:left">
@@ -680,6 +683,11 @@ if(!IS_CONFIGURED){
   logEvent('visit');
   if(!userName) setTimeout(window.openName,600);
 } else {
+  if(myGroups.length>0){
+    if(!app){ app = initializeApp(FIREBASE_CONFIG); db = getDatabase(app); }
+    myGroups.forEach(subscribeGroup); // loads names + events so the picker shows them
+  }
+  renderMyGroupsList();
   document.getElementById('groupOv').classList.add('open');
 }
 

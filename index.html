@@ -93,14 +93,24 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
     Get it at <strong>console.firebase.google.com</strong> → Add project → Build → Realtime Database → Project settings → Add web app.
   </div>
 
-  <button class="add-btn" id="addEventBtn">＋ Add an event</button>
-  <div id="viewToggleRow" style="display:none;margin-bottom:14px">
-    <button id="viewToggleBtn" style="width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:12px;font-size:.84rem;font-weight:600;cursor:pointer"></button>
+  <div id="singleEventView" style="display:none">
+    <div class="sec-label">📅 You're invited</div>
+    <div id="singleEventCard"></div>
+    <div style="text-align:center;margin-top:20px;color:var(--muted);font-size:.78rem">
+      This is a single shared event — RSVP above. The rest of this group's calendar isn't shown here.
+    </div>
   </div>
-  <div class="sec-label">Coming up</div>
-  <div class="events" id="list"></div>
-  <div style="text-align:center;margin-top:28px;padding-bottom:10px">
-    <a id="feedbackLink" href="#" target="_blank" rel="noopener" style="color:var(--muted);font-size:.78rem;text-decoration:underline">💬 Got feedback or ideas? Tell us</a>
+
+  <div id="normalView">
+    <button class="add-btn" id="addEventBtn">＋ Add an event</button>
+    <div id="viewToggleRow" style="display:none;margin-bottom:14px">
+      <button id="viewToggleBtn" style="width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:12px;font-size:.84rem;font-weight:600;cursor:pointer"></button>
+    </div>
+    <div class="sec-label">Coming up</div>
+    <div class="events" id="list"></div>
+    <div style="text-align:center;margin-top:28px;padding-bottom:10px">
+      <a id="feedbackLink" href="#" target="_blank" rel="noopener" style="color:var(--muted);font-size:.78rem;text-decoration:underline">💬 Got feedback or ideas? Tell us</a>
+    </div>
   </div>
 </main>
 
@@ -243,10 +253,14 @@ function sanitizeCode(c){
 function getGroupFromUrl(){
   return new URLSearchParams(window.location.search).get('g') || '';
 }
+function getSharedEventFromUrl(){
+  return new URLSearchParams(window.location.search).get('event') || '';
+}
 function groupLink(code){
   return window.location.origin + window.location.pathname + '?g=' + encodeURIComponent(code);
 }
 let groupCode = getGroupFromUrl();
+let sharedEventKey = getSharedEventFromUrl();
 let myGroups = JSON.parse(localStorage.getItem('op_groups') || '[]');
 let groupNames = {}; // { code: displayName }
 
@@ -301,6 +315,16 @@ function fmtDateLong(dateStr){
 // ── WhatsApp link builder — links straight to the live shared site ───────────
 function waLink(ev){
   const siteUrl = groupLink(ev.groupCode || groupCode);
+  return buildWaMsg(ev, siteUrl);
+}
+// Link to just ONE event — recipients see only this event, not the full group
+function singleEventLink(ev){
+  return groupLink(ev.groupCode || groupCode) + '&event=' + encodeURIComponent(ev.fbKey);
+}
+function waLinkSingle(ev){
+  return buildWaMsg(ev, singleEventLink(ev));
+}
+function buildWaMsg(ev, siteUrl){
   let msg = `📅 *${ev.title}*\n`;
   msg += `🗓 ${fmtDateLong(ev.date)}`;
   if(ev.time) msg += ` at ${fmtTime(ev.time)}`;
@@ -359,6 +383,68 @@ function connectFirebase(){
 
 // (boot sequence runs at the end of this script, after all functions are defined)
 
+const WA_ICON = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+
+// Renders one event card. opts.single = true for the restricted single-event view
+// (hides delete + the "share single event" button, and the WA button links to
+// just this one event instead of the whole group).
+function renderEventCard(ev, opts={}){
+  const single = !!opts.single;
+  const rsvps  = ev.rsvps||{};
+  const mine   = rsvps[userName]||'';
+  const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
+  const maybes = Object.entries(rsvps).filter(([,s])=>s==='maybe');
+  const nopes  = Object.entries(rsvps).filter(([,s])=>s==='nope');
+  const faces  = goers.slice(0,4).map(([n])=>
+    `<div class="face" style="background:${nc(n)}">${ini(n)}</div>`).join('');
+  const countTxt = goers.length===0?'No one yet':`${goers.length} going`;
+  const namesHtml = (goers.length||maybes.length||nopes.length) ? `
+    <div class="names-row">
+      ${goers.length?`<span class="ng"><span style="color:var(--green)">✓</span>${goers.map(([n])=>n).join(', ')}</span>`:''}
+      ${maybes.length?`<span class="ng"><span style="color:var(--yellow)">?</span>${maybes.map(([n])=>n).join(', ')}</span>`:''}
+      ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
+    </div>` : '';
+
+  const isOwner = ev.addedBy === userName;
+  const d = new Date(ev.date+'T12:00:00');
+  const waHref = single ? waLinkSingle(ev) : waLink(ev);
+
+  return `
+    <div class="card">
+      <div class="card-top">
+        <div class="datepill"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
+        <div class="einfo">
+          <div class="etitle">${ev.title}</div>
+          <div class="emeta">
+            ${ev.time?`<span>🕐 ${fmtTime(ev.time)}</span>`:''}
+            ${ev.place?`<span>📍 ${ev.place}</span>`:''}
+            <span>by ${ev.addedBy}</span>
+            ${(!single && viewMode==='all')?`<span>🔑 ${displayName(ev.groupCode)}</span>`:''}
+          </div>
+        </div>
+      </div>
+      ${ev.note?`<div class="enote">${ev.note}</div>`:''}
+      <div class="rsvp-row">
+        <button class="rb ${mine==='going'?'going':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">✓ Going</button>
+        <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
+        <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
+        <div class="faces">
+          ${goers.length?`<div class="fstack">${faces}</div>`:''}
+          ${countTxt}
+        </div>
+      </div>
+      ${namesHtml}
+      <div class="share-row">
+        <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">
+          ${WA_ICON}
+          Share to WhatsApp
+        </a>
+        ${!single ? `<a class="wa-btn" href="${waLinkSingle(ev)}" target="_blank" rel="noopener" data-action="share-single" style="background:var(--surf2);color:var(--text)">🔗 Share this event only</a>` : ''}
+        ${(isOwner && !single) ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
+      </div>
+    </div>`;
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 window.render = function render(){
   document.getElementById('nameLabel').textContent = userName || 'Set name';
@@ -379,67 +465,29 @@ window.render = function render(){
     const d   = new Date(ev.date+'T12:00:00');
     const mon = d.toLocaleString('en',{month:'long',year:'numeric'});
     if(mon!==lastMon){ html+=`<div class="month-sep">${mon}</div>`; lastMon=mon; }
-
-    const rsvps  = ev.rsvps||{};
-    const mine   = rsvps[userName]||'';
-    const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
-    const maybes = Object.entries(rsvps).filter(([,s])=>s==='maybe');
-    const nopes  = Object.entries(rsvps).filter(([,s])=>s==='nope');
-    const faces  = goers.slice(0,4).map(([n])=>
-      `<div class="face" style="background:${nc(n)}">${ini(n)}</div>`).join('');
-    const countTxt = goers.length===0?'No one yet':`${goers.length} going`;
-    const namesHtml = (goers.length||maybes.length||nopes.length) ? `
-      <div class="names-row">
-        ${goers.length?`<span class="ng"><span style="color:var(--green)">✓</span>${goers.map(([n])=>n).join(', ')}</span>`:''}
-        ${maybes.length?`<span class="ng"><span style="color:var(--yellow)">?</span>${maybes.map(([n])=>n).join(', ')}</span>`:''}
-        ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
-      </div>` : '';
-
-    const isOwner = ev.addedBy === userName;
-    const waHref  = waLink(ev);
-
-    html += `
-    <div class="card">
-      <div class="card-top">
-        <div class="datepill"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
-        <div class="einfo">
-          <div class="etitle">${ev.title}</div>
-          <div class="emeta">
-            ${ev.time?`<span>🕐 ${fmtTime(ev.time)}</span>`:''}
-            ${ev.place?`<span>📍 ${ev.place}</span>`:''}
-            <span>by ${ev.addedBy}</span>
-            ${viewMode==='all'?`<span>🔑 ${displayName(ev.groupCode)}</span>`:''}
-          </div>
-        </div>
-      </div>
-      ${ev.note?`<div class="enote">${ev.note}</div>`:''}
-      <div class="rsvp-row">
-        <button class="rb ${mine==='going'?'going':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">✓ Going</button>
-        <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
-        <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
-        <div class="faces">
-          ${goers.length?`<div class="fstack">${faces}</div>`:''}
-          ${countTxt}
-        </div>
-      </div>
-      ${namesHtml}
-      <div class="share-row">
-        <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          Share to WhatsApp
-        </a>
-        ${isOwner ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
-      </div>
-    </div>`;
+    html += renderEventCard(ev, {single:false});
   }
   list.innerHTML = html;
+}
+
+// ── Single-event (restricted) view ──────────────────────────────────────────
+let singleEvent = null;
+function renderSingleEvent(){
+  document.getElementById('nameLabel').textContent = userName || 'Set name';
+  const el = document.getElementById('singleEventCard');
+  if(!singleEvent){
+    el.innerHTML = `<div class="empty"><div class="ei">🗓️</div><p>This event couldn't be found.<br>It may have been removed.</p></div>`;
+    return;
+  }
+  el.innerHTML = renderEventCard(singleEvent, {single:true});
 }
 
 // ── RSVP — instantly synced to everyone via Firebase ─────────────────────────
 window.rsvp = async function(fbKey, status){
   if(!userName){ window.openName(); return; }
   if(!IS_CONFIGURED || !db){ window.toast('Firebase not set up yet'); return; }
-  const ev = getEvents().find(e=>e.fbKey===fbKey);
+  const ev = getEvents().find(e=>e.fbKey===fbKey)
+    || (singleEvent && singleEvent.fbKey===fbKey ? singleEvent : null);
   if(!ev) return;
   const rsvps = {...(ev.rsvps||{})};
   if(rsvps[userName]===status) delete rsvps[userName];
@@ -655,14 +703,19 @@ try{
   });
 
   // Event delegation for dynamically-rendered RSVP / delete / share buttons
-  document.getElementById('list').addEventListener('click', (e)=>{
+  // (shared handler for both the normal list and the single-event view)
+  function handleCardClick(e){
     const rb = e.target.closest('[data-action="rsvp"]');
     if(rb){ window.rsvp(rb.dataset.fbkey, rb.dataset.status); return; }
     const del = e.target.closest('[data-action="delete"]');
     if(del){ window.deleteEvent(del.dataset.fbkey); return; }
+    const shareSingle = e.target.closest('[data-action="share-single"]');
+    if(shareSingle){ logEvent('whatsapp_share_single'); return; }
     const wa = e.target.closest('.wa-btn');
     if(wa){ logEvent('whatsapp_share'); return; }
-  });
+  }
+  document.getElementById('list').addEventListener('click', handleCardClick);
+  document.getElementById('singleEventCard').addEventListener('click', handleCardClick);
 
   // Feedback link
   const fb = document.getElementById('feedbackLink');
@@ -677,6 +730,22 @@ try{
 updateGroupLabel();
 if(!IS_CONFIGURED){
   connectFirebase();
+  if(!userName) setTimeout(window.openName,600);
+} else if(groupCode && sharedEventKey){
+  // Restricted single-event view: show only this one event, no group access
+  document.getElementById('normalView').style.display='none';
+  document.getElementById('singleEventView').style.display='block';
+  document.getElementById('groupLabel').style.display='none';
+  try{
+    if(!app){ app = initializeApp(FIREBASE_CONFIG); db = getDatabase(app); }
+    onValue(ref(db, `groups/${groupCode}/events/${sharedEventKey}`), snap => {
+      const v = snap.val();
+      singleEvent = v ? {...v, fbKey: sharedEventKey, groupCode} : null;
+      setConn(v ? 'live' : 'err');
+      renderSingleEvent();
+    }, err => { console.error(err); setConn('err'); renderSingleEvent(); });
+  } catch(e){ console.error(e); setConn('err'); }
+  logEvent('visit_single_event');
   if(!userName) setTimeout(window.openName,600);
 } else if(groupCode){
   connectFirebase();

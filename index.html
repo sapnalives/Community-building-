@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Our Plans 📅</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:wght@700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;--surf:#1a1a22;--surf2:#22222d;--border:#2e2e3d;
+  --accent:#c8f062;--purple:#7c6af7;--text:#e8e8f0;--muted:#7a7a96;
+  --red:#f06262;--green:#62f0a0;--yellow:#f0c462;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+header{background:var(--surf);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.logo{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--accent)}
+.logo small{display:block;font-family:'DM Sans',sans-serif;font-size:.68rem;color:var(--muted);margin-top:1px;font-weight:400}
+#nameBtn{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:7px 13px;border-radius:20px;cursor:pointer}
+main{max-width:500px;margin:0 auto;padding:18px 14px 80px}
+.add-btn{width:100%;background:var(--accent);color:#0f0f13;border:none;border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:22px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sec-label{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.events{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.card-top{display:flex;gap:12px;padding:14px 14px 10px;align-items:flex-start}
+.datepill{background:var(--surf2);border-radius:9px;padding:7px 9px;text-align:center;min-width:46px;flex-shrink:0}
+.datepill .d{font-size:1.35rem;font-weight:600;line-height:1;color:var(--accent)}
+.datepill .m{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.einfo{flex:1;min-width:0}
+.etitle{font-weight:600;font-size:.97rem;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emeta{font-size:.77rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.enote{font-size:.8rem;color:var(--muted);padding:0 14px 10px;line-height:1.5}
+.rsvp-row{border-top:1px solid var(--border);padding:9px 14px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rb{border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;padding:5px 11px;border-radius:20px;cursor:pointer;transition:all .15s}
+.rb.going{background:rgba(98,240,160,.14);border-color:var(--green);color:var(--green)}
+.rb.maybe{background:rgba(240,196,98,.14);border-color:var(--yellow);color:var(--yellow)}
+.rb.nope{background:rgba(240,98,98,.12);border-color:var(--red);color:var(--red)}
+.faces{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted)}
+.fstack{display:flex}
+.face{width:21px;height:21px;border-radius:50%;border:2px solid var(--surf);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:600;margin-left:-5px;color:#0f0f13}
+.face:first-child{margin-left:0}
+.names-row{padding:0 14px 10px;font-size:.73rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.ng{display:flex;align-items:center;gap:3px}
+.month-sep{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:14px 0 7px}
+.share-row{border-top:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wa-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(37,211,102,.13);border:1px solid rgba(37,211,102,.35);color:#25d366;font-family:'DM Sans',sans-serif;font-size:.73rem;font-weight:500;padding:5px 12px;border-radius:20px;cursor:pointer;text-decoration:none}
+.wa-btn svg{width:13px;height:13px;fill:#25d366;flex-shrink:0}
+.del-btn{background:transparent;border:none;color:var(--muted);font-size:.72rem;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:'DM Sans',sans-serif}
+.del-btn:hover{color:var(--red)}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty .ei{font-size:2.4rem;margin-bottom:10px}
+.empty p{font-size:.88rem;line-height:1.6}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+.ov.mid{align-items:center}
+.sheet{background:var(--surf);border-radius:20px 20px 0 0;padding:22px 18px 36px;width:100%;max-width:500px;border-top:1px solid var(--border);animation:up .22s ease}
+.sheet.card2{border-radius:18px;max-width:340px;margin:auto}
+@keyframes up{from{transform:translateY(36px);opacity:0}to{transform:translateY(0);opacity:1}}
+.stitle{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+.xbtn{background:var(--surf2);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.9rem}
+.fl{margin-bottom:14px}
+.fl label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:5px;font-weight:500}
+.fl input,.fl textarea{width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;padding:10px 12px;border-radius:9px;outline:none;-webkit-appearance:none}
+.fl input:focus,.fl textarea:focus{border-color:var(--purple)}
+.fl textarea{resize:none;height:68px}
+.twoCol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sbtn{width:100%;background:var(--purple);color:#fff;border:none;border-radius:11px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:600;cursor:pointer;margin-top:4px}
+.sbtn:disabled{opacity:.5;cursor:not-allowed}
+.setup-banner{background:rgba(240,196,98,.1);border:1px solid rgba(240,196,98,.3);border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:.82rem;color:var(--yellow);line-height:1.6}
+.setup-banner strong{display:block;margin-bottom:4px;font-size:.88rem}
+.setup-banner code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-size:.78rem;color:var(--text)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px;transition:background .4s}
+.status-dot.live{background:var(--green)}
+.status-dot.err{background:var(--red)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:11px 18px;border-radius:22px;font-size:.82rem;font-weight:500;z-index:200;transition:transform .28s;white-space:nowrap;pointer-events:none}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .65s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes rot{to{transform:rotate(360deg)}}
+input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.4);cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📅 our plans<small><span class="status-dot" id="dot"></span><span id="connLabel">connecting…</span> · <span id="groupLabel" style="cursor:pointer;text-decoration:underline"></span></small></div>
+  <button id="nameBtn">👤 <span id="nameLabel">Set name</span></button>
+</header>
+
+<main>
+  <div class="setup-banner" id="setupBanner" style="display:none">
+    <strong>⚙️ One-time Firebase setup needed</strong>
+    Replace the <code>FIREBASE_CONFIG</code> object near the top of this file with your own free Firebase project config.
+    Get it at <strong>console.firebase.google.com</strong> → Add project → Build → Realtime Database → Project settings → Add web app.
+  </div>
+
+  <button class="add-btn" id="addEventBtn">＋ Add an event</button>
+  <div id="viewToggleRow" style="display:none;margin-bottom:14px">
+    <button id="viewToggleBtn" style="width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:12px;font-size:.84rem;font-weight:600;cursor:pointer"></button>
+  </div>
+  <div class="sec-label">Coming up</div>
+  <div class="events" id="list"></div>
+  <div style="text-align:center;margin-top:28px;padding-bottom:10px">
+    <a id="feedbackLink" href="#" target="_blank" rel="noopener" style="color:var(--muted);font-size:.78rem;text-decoration:underline">💬 Got feedback or ideas? Tell us</a>
+  </div>
+</main>
+
+<!-- Group modal -->
+<div class="ov mid" id="groupOv">
+  <div class="sheet card2">
+    <div class="stitle">Group <button class="xbtn" id="closeGroupBtn" style="display:none">✕</button></div>
+    <div id="currentGroupBox" style="display:none;margin-bottom:14px">
+      <div class="fl"><label>Current group — invite others with this link</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="currentGroupCode" style="flex:1;background:var(--surf2);border:1px solid var(--border);padding:10px 12px;border-radius:9px;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <button class="sbtn" id="copyGroupLinkBtn" style="width:auto;margin:0;padding:10px 14px">📋</button>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--muted);font-size:.78rem;margin:14px 0">— or switch to a different group —</div>
+    </div>
+    <div class="fl"><label>Have a group code? Enter it to join</label>
+      <input id="groupCodeIn" type="text" maxlength="40" placeholder="e.g. family2026">
+    </div>
+    <button class="sbtn" id="joinGroupBtn">Join group</button>
+    <div style="text-align:center;color:var(--muted);font-size:.78rem;margin:14px 0">— or —</div>
+    <button class="sbtn" id="createGroupBtn" style="background:var(--accent);color:#0f0f13">✨ Create new group</button>
+  </div>
+</div>
+
+<!-- Name modal -->
+<div class="ov mid" id="nameOv">
+  <div class="sheet card2">
+    <div class="stitle">Who are you? 👋</div>
+    <div class="fl"><label>Your name (shown to the group)</label>
+      <input id="nameIn" type="text" maxlength="20" placeholder="e.g. Jamie">
+    </div>
+    <button class="sbtn" id="saveNameBtn">Save</button>
+  </div>
+</div>
+
+<!-- Add event modal -->
+<div class="ov" id="addOv">
+  <div class="sheet">
+    <div class="stitle">New event <button class="xbtn" id="closeAddBtn">✕</button></div>
+    <div id="addToGroupNote" style="display:none;color:var(--muted);font-size:.78rem;margin:-6px 0 12px">Adding to group: <strong id="addToGroupLabel"></strong></div>
+    <div class="fl"><label>Event name</label>
+      <input id="fTitle" type="text" maxlength="60" placeholder="e.g. Friday dinner at Marco's">
+    </div>
+    <div class="twoCol">
+      <div class="fl"><label>Date</label><input id="fDate" type="date"></div>
+      <div class="fl"><label>Time (optional)</label><input id="fTime" type="time"></div>
+    </div>
+    <div class="fl"><label>Location (optional)</label>
+      <input id="fPlace" type="text" maxlength="60" placeholder="e.g. Central Park">
+    </div>
+    <div class="fl"><label>Note (optional)</label>
+      <textarea id="fNote" placeholder="Any extra details…"></textarea>
+    </div>
+    <button class="sbtn" id="saveBtn">Add to calendar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, push, remove, update }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── Debug: show any JS error directly on the page ────────────────────────────
+window.addEventListener('error', (e) => {
+  showDebug('Error: ' + e.message + (e.filename ? ` (${e.filename}:${e.lineno})` : ''));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showDebug('Promise error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+function showDebug(msg){
+  let el = document.getElementById('debugBox');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'debugBox';
+    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#f06262;color:#fff;font-size:12px;padding:10px;z-index:9999;white-space:pre-wrap;font-family:monospace';
+    document.body.appendChild(el);
+  }
+  el.textContent += (el.textContent ? '\n' : '') + msg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🔧 REPLACE THIS with your Firebase project config (free Spark plan, no card)
+//    console.firebase.google.com → your project → Project Settings → Web app
+// ─────────────────────────────────────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDaXPgK0GSUv_qDxGOgftA9uhWVNVApwHY",
+  authDomain:        "summer2026-24501.firebaseapp.com",
+  databaseURL:       "https://summer2026-24501-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "summer2026-24501",
+  storageBucket:     "summer2026-24501.firebasestorage.app",
+  messagingSenderId: "555927658086",
+  appId:             "1:555927658086:web:6b375fb7ea96ea246157a7"
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 🔧 OPTIONAL: where the "Got feedback?" link sends people.
+//    Defaults to opening WhatsApp with a blank message — replace the number
+//    (country code + number, no symbols) to point it at your phone, or swap
+//    this whole string for a Google Form URL.
+const FEEDBACK_URL = 'https://wa.me/?text=' + encodeURIComponent('Feedback on the Plans app: ');
+
+const IS_CONFIGURED = !FIREBASE_CONFIG.apiKey.startsWith('PASTE');
+
+// ── State ────────────────────────────────────────────────────────────────────
+let userName = localStorage.getItem('op_name') || '';
+let eventsByGroup = {};   // { groupCode: [events with fbKey + groupCode] }
+let unsubs = {};          // { groupCode: unsubscribeFn }
+let viewMode = localStorage.getItem('op_viewmode') || 'group'; // 'group' | 'all'
+let db, app, eventsRef;
+
+// ── Anonymous usage analytics ──────────────────────────────────────────────
+// Logs lightweight, anonymous usage events (action + group + timestamp) to
+// help understand how the app is being used. No names, no event content.
+let uid = localStorage.getItem('op_uid');
+if(!uid){ uid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('op_uid', uid); }
+
+function logEvent(action, extra={}){
+  if(!IS_CONFIGURED || !db) return;
+  try{
+    push(ref(db, 'analytics/events'), {
+      action, group: groupCode || '(none)', uid, ts: Date.now(), ...extra
+    });
+  } catch(e){ /* never let analytics break the app */ }
+}
+
+// ── Groups ───────────────────────────────────────────────────────────────────
+const ADJ  = ['sunny','happy','cosy','breezy','golden','merry','jolly','swift','bright','lucky','calm','vivid','cheerful','quiet','clever'];
+const NOUN = ['tiger','panda','otter','falcon','maple','comet','willow','harbor','meadow','ember','river','sparrow','badger','lantern','pebble'];
+function genGroupCode(){
+  const a = ADJ[Math.floor(Math.random()*ADJ.length)];
+  const n = NOUN[Math.floor(Math.random()*NOUN.length)];
+  const num = Math.floor(Math.random()*90+10);
+  return `${a}-${n}-${num}`;
+}
+function sanitizeCode(c){
+  return (c||'').toLowerCase().trim().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+}
+function getGroupFromUrl(){
+  return new URLSearchParams(window.location.search).get('g') || '';
+}
+function groupLink(code){
+  return window.location.origin + window.location.pathname + '?g=' + encodeURIComponent(code);
+}
+let groupCode = getGroupFromUrl();
+let myGroups = JSON.parse(localStorage.getItem('op_groups') || '[]');
+
+function saveMyGroups(){ localStorage.setItem('op_groups', JSON.stringify(myGroups)); }
+function addToMyGroups(code){
+  if(code && !myGroups.includes(code)){ myGroups.push(code); saveMyGroups(); }
+}
+function getEvents(){
+  if(viewMode==='all') return myGroups.flatMap(c => eventsByGroup[c] || []);
+  return eventsByGroup[groupCode] || [];
+}
+
+function updateGroupLabel(){
+  document.getElementById('groupLabel').textContent = groupCode ? `🔑 ${groupCode}` : '';
+}
+
+function updateViewToggle(){
+  const row = document.getElementById('viewToggleRow');
+  const btn = document.getElementById('viewToggleBtn');
+  if(myGroups.length>1){
+    row.style.display='block';
+    btn.textContent = viewMode==='all'
+      ? `👁 Showing all ${myGroups.length} groups — tap to view only "${groupCode}"`
+      : `📋 Show all my groups (${myGroups.length})`;
+  } else {
+    row.style.display='none';
+  }
+}
+window.toggleView = function(){
+  viewMode = viewMode==='all' ? 'group' : 'all';
+  localStorage.setItem('op_viewmode', viewMode);
+  logEvent('view_toggle', {mode: viewMode});
+  updateViewToggle();
+  window.render();
+}
+
+// ── Colours ──────────────────────────────────────────────────────────────────
+const COLS = ['#c8f062','#7c6af7','#f06262','#62f0a0','#f0c462','#62c8f0','#f062c8'];
+function nc(n){ let h=0; for(let c of (n||'')) h=(h*31+c.charCodeAt(0))%COLS.length; return COLS[h]; }
+function ini(n){ return (n||'??').slice(0,2).toUpperCase(); }
+function fmtTime(t){
+  if(!t) return '';
+  const [h,m]=t.split(':').map(Number);
+  return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`;
+}
+function fmtDateLong(dateStr){
+  const d = new Date(dateStr+'T12:00:00');
+  return d.toLocaleDateString('en',{weekday:'short',day:'numeric',month:'long'});
+}
+
+// ── WhatsApp link builder — links straight to the live shared site ───────────
+function waLink(ev){
+  const siteUrl = groupLink(ev.groupCode || groupCode);
+  let msg = `📅 *${ev.title}*\n`;
+  msg += `🗓 ${fmtDateLong(ev.date)}`;
+  if(ev.time) msg += ` at ${fmtTime(ev.time)}`;
+  if(ev.place) msg += `\n📍 ${ev.place}`;
+  if(ev.note)  msg += `\n💬 ${ev.note}`;
+  msg += `\n\nRSVP & see live updates 👉 ${siteUrl}`;
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
+
+// ── Firebase boot ────────────────────────────────────────────────────────────
+function setConn(state){
+  const dot   = document.getElementById('dot');
+  const label = document.getElementById('connLabel');
+  if(state==='live'){ dot.className='status-dot live'; label.textContent='live — synced'; }
+  else if(state==='err'){ dot.className='status-dot err'; label.textContent='offline'; }
+  else { dot.className='status-dot'; label.textContent='connecting…'; }
+}
+
+function subscribeGroup(code){
+  if(unsubs[code]) return; // already subscribed
+  const r = ref(db, `groups/${code}/events`);
+  unsubs[code] = onValue(r, snap => {
+    const raw = snap.val();
+    eventsByGroup[code] = raw
+      ? Object.entries(raw).map(([fbKey, v]) => ({...v, fbKey, groupCode: code}))
+      : [];
+    setConn('live');
+    window.render();
+  }, err => { console.error(err); setConn('err'); });
+}
+
+function connectFirebase(){
+  if(!IS_CONFIGURED){
+    document.getElementById('setupBanner').style.display='block';
+    setConn('err');
+    eventsByGroup={};
+    window.render();
+    return;
+  }
+  try{
+    if(!app){ app = initializeApp(FIREBASE_CONFIG); db = getDatabase(app); }
+    addToMyGroups(groupCode);
+    eventsRef = ref(db, `groups/${groupCode}/events`);
+    myGroups.forEach(subscribeGroup);
+  } catch(e){ console.error(e); setConn('err'); }
+}
+
+// (boot sequence runs at the end of this script, after all functions are defined)
+
+// ── Render ───────────────────────────────────────────────────────────────────
+window.render = function render(){
+  document.getElementById('nameLabel').textContent = userName || 'Set name';
+  updateViewToggle();
+  const now = new Date(); now.setHours(0,0,0,0);
+  const up = getEvents()
+    .filter(e => new Date(e.date+'T12:00:00') >= now)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const list = document.getElementById('list');
+  if(!up.length){
+    list.innerHTML = `<div class="empty"><div class="ei">🗓️</div><p>No plans yet.<br>Be the one to suggest something!</p></div>`;
+    return;
+  }
+
+  let html='', lastMon='';
+  for(const ev of up){
+    const d   = new Date(ev.date+'T12:00:00');
+    const mon = d.toLocaleString('en',{month:'long',year:'numeric'});
+    if(mon!==lastMon){ html+=`<div class="month-sep">${mon}</div>`; lastMon=mon; }
+
+    const rsvps  = ev.rsvps||{};
+    const mine   = rsvps[userName]||'';
+    const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
+    const maybes = Object.entries(rsvps).filter(([,s])=>s==='maybe');
+    const nopes  = Object.entries(rsvps).filter(([,s])=>s==='nope');
+    const faces  = goers.slice(0,4).map(([n])=>
+      `<div class="face" style="background:${nc(n)}">${ini(n)}</div>`).join('');
+    const countTxt = goers.length===0?'No one yet':`${goers.length} going`;
+    const namesHtml = (goers.length||maybes.length||nopes.length) ? `
+      <div class="names-row">
+        ${goers.length?`<span class="ng"><span style="color:var(--green)">✓</span>${goers.map(([n])=>n).join(', ')}</span>`:''}
+        ${maybes.length?`<span class="ng"><span style="color:var(--yellow)">?</span>${maybes.map(([n])=>n).join(', ')}</span>`:''}
+        ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
+      </div>` : '';
+
+    const isOwner = ev.addedBy === userName;
+    const waHref  = waLink(ev);
+
+    html += `
+    <div class="card">
+      <div class="card-top">
+        <div class="datepill"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
+        <div class="einfo">
+          <div class="etitle">${ev.title}</div>
+          <div class="emeta">
+            ${ev.time?`<span>🕐 ${fmtTime(ev.time)}</span>`:''}
+            ${ev.place?`<span>📍 ${ev.place}</span>`:''}
+            <span>by ${ev.addedBy}</span>
+            ${viewMode==='all'?`<span>🔑 ${ev.groupCode}</span>`:''}
+          </div>
+        </div>
+      </div>
+      ${ev.note?`<div class="enote">${ev.note}</div>`:''}
+      <div class="rsvp-row">
+        <button class="rb ${mine==='going'?'going':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">✓ Going</button>
+        <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
+        <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
+        <div class="faces">
+          ${goers.length?`<div class="fstack">${faces}</div>`:''}
+          ${countTxt}
+        </div>
+      </div>
+      ${namesHtml}
+      <div class="share-row">
+        <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Share to WhatsApp
+        </a>
+        ${isOwner ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
+      </div>
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+// ── RSVP — instantly synced to everyone via Firebase ─────────────────────────
+window.rsvp = async function(fbKey, status){
+  if(!userName){ window.openName(); return; }
+  if(!IS_CONFIGURED || !db){ window.toast('Firebase not set up yet'); return; }
+  const ev = getEvents().find(e=>e.fbKey===fbKey);
+  if(!ev) return;
+  const rsvps = {...(ev.rsvps||{})};
+  if(rsvps[userName]===status) delete rsvps[userName];
+  else rsvps[userName]=status;
+  await update(ref(db, `groups/${ev.groupCode}/events/${fbKey}`), {rsvps});
+  logEvent('rsvp', {status: rsvps[userName] || 'cleared'});
+  window.toast('RSVP synced ✓ — everyone sees it live');
+}
+
+// ── Delete event ──────────────────────────────────────────────────────────────
+window.deleteEvent = async function(fbKey){
+  if(!confirm('Delete this event?')) return;
+  if(!IS_CONFIGURED || !db){ window.toast('Firebase not set up yet'); return; }
+  const ev = getEvents().find(e=>e.fbKey===fbKey);
+  const code = ev ? ev.groupCode : groupCode;
+  await remove(ref(db, `groups/${code}/events/${fbKey}`));
+  window.toast('Event deleted');
+}
+
+// ── Add Event ─────────────────────────────────────────────────────────────────
+window.openAdd = function(){
+  if(!userName){ window.openName(); return; }
+  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  const note = document.getElementById('addToGroupNote');
+  if(myGroups.length>1){
+    note.style.display='block';
+    document.getElementById('addToGroupLabel').textContent = `🔑 ${groupCode}`;
+  } else {
+    note.style.display='none';
+  }
+  document.getElementById('addOv').classList.add('open');
+}
+window.closeAdd = function(){
+  document.getElementById('addOv').classList.remove('open');
+}
+
+window.addEvent = async function(){
+  const title = document.getElementById('fTitle').value.trim();
+  const date  = document.getElementById('fDate').value;
+  if(!title||!date){ window.toast('Add a name and date!'); return; }
+
+  if(!IS_CONFIGURED || !db){ window.toast('Firebase not configured yet'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span>Saving…';
+
+  const ev = {
+    title, date,
+    time:    document.getElementById('fTime').value,
+    place:   document.getElementById('fPlace').value.trim(),
+    note:    document.getElementById('fNote').value.trim(),
+    addedBy: userName,
+    rsvps:   { [userName]: 'going' },
+    created: Date.now()
+  };
+
+  const newRef = await push(eventsRef, ev);
+  logEvent('event_added');
+  const waHref = waLink(ev);
+  btn.disabled=false;
+  btn.innerHTML='Add to calendar';
+  window.closeAdd();
+  ['fTitle','fTime','fPlace','fNote'].forEach(id=>document.getElementById(id).value='');
+  window.toast('Event added 🎉 — opening WhatsApp…');
+  setTimeout(()=>{ window.open(waHref,'_blank'); }, 900);
+}
+
+// ── Name ──────────────────────────────────────────────────────────────────────
+window.openName = function(){
+  document.getElementById('nameIn').value = userName;
+  document.getElementById('nameOv').classList.add('open');
+  setTimeout(()=>document.getElementById('nameIn').focus(),120);
+}
+window.saveName = function(){
+  const v = document.getElementById('nameIn').value.trim();
+  if(!v) return;
+  userName=v;
+  localStorage.setItem('op_name',v);
+  document.getElementById('nameOv').classList.remove('open');
+  window.render();
+  window.toast('Name saved ✓');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+window.bgClose = function(e, id){
+  if(e.target===document.getElementById(id))
+    document.getElementById(id).classList.remove('open');
+}
+
+// ── Group switching ─────────────────────────────────────────────────────────
+window.setGroup = function(code, isCreate){
+  code = sanitizeCode(code);
+  if(!code){ window.toast('Enter a valid group code'); return; }
+  groupCode = code;
+  const url = new URL(window.location.href);
+  url.searchParams.set('g', code);
+  history.replaceState(null,'',url.toString());
+  document.getElementById('groupOv').classList.remove('open');
+  document.getElementById('groupCodeIn').value='';
+  updateGroupLabel();
+  connectFirebase();
+  logEvent(isCreate ? 'group_created' : 'group_joined');
+
+  if(isCreate){
+    navigator.clipboard?.writeText(groupLink(code)).then(()=>{
+      window.toast(`Group created! Link copied — share it 🎉`);
+    }).catch(()=>{
+      window.toast(`Group created: ${code}`);
+    });
+  } else {
+    window.toast(`Joined group: ${code}`);
+  }
+
+  if(!userName) setTimeout(window.openName,500);
+}
+
+window.openGroupSwitch = function(){
+  const box = document.getElementById('currentGroupBox');
+  if(groupCode){
+    box.style.display='block';
+    document.getElementById('currentGroupCode').textContent = groupLink(groupCode);
+    document.getElementById('closeGroupBtn').style.display='';
+  } else {
+    box.style.display='none';
+    document.getElementById('closeGroupBtn').style.display='none';
+  }
+  document.getElementById('groupCodeIn').value='';
+  document.getElementById('groupOv').classList.add('open');
+}
+window.closeGroupOv = function(){
+  if(!groupCode) return; // group selection is mandatory on first visit
+  document.getElementById('groupOv').classList.remove('open');
+}
+let toastTimer;
+window.toast = function(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('on'),2600);
+}
+
+// ── Wire up all interactions (instead of inline onclick) ─────────────────────
+try{
+  document.getElementById('nameBtn').addEventListener('click', window.openName);
+  document.getElementById('addEventBtn').addEventListener('click', window.openAdd);
+  document.getElementById('saveNameBtn').addEventListener('click', window.saveName);
+  document.getElementById('closeAddBtn').addEventListener('click', window.closeAdd);
+  document.getElementById('saveBtn').addEventListener('click', window.addEvent);
+
+  document.getElementById('nameIn').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') window.saveName();
+  });
+
+  document.getElementById('nameOv').addEventListener('click', (e)=>window.bgClose(e,'nameOv'));
+  document.getElementById('addOv').addEventListener('click', (e)=>window.bgClose(e,'addOv'));
+
+  // Group modal
+  document.getElementById('groupLabel').addEventListener('click', window.openGroupSwitch);
+  document.getElementById('closeGroupBtn').addEventListener('click', window.closeGroupOv);
+  document.getElementById('viewToggleBtn').addEventListener('click', window.toggleView);
+
+  document.getElementById('groupOv').addEventListener('click', (e)=>{ if(groupCode) window.bgClose(e,'groupOv'); });
+  document.getElementById('joinGroupBtn').addEventListener('click', ()=>{
+    window.setGroup(document.getElementById('groupCodeIn').value, false);
+  });
+  document.getElementById('createGroupBtn').addEventListener('click', ()=>{
+    window.setGroup(genGroupCode(), true);
+  });
+  document.getElementById('groupCodeIn').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') document.getElementById('joinGroupBtn').click();
+  });
+  document.getElementById('copyGroupLinkBtn').addEventListener('click', ()=>{
+    navigator.clipboard?.writeText(groupLink(groupCode)).then(()=>{
+      window.toast('Link copied ✓');
+    }).catch(()=>{ window.toast('Could not copy — long-press to copy manually'); });
+  });
+
+  // Event delegation for dynamically-rendered RSVP / delete / share buttons
+  document.getElementById('list').addEventListener('click', (e)=>{
+    const rb = e.target.closest('[data-action="rsvp"]');
+    if(rb){ window.rsvp(rb.dataset.fbkey, rb.dataset.status); return; }
+    const del = e.target.closest('[data-action="delete"]');
+    if(del){ window.deleteEvent(del.dataset.fbkey); return; }
+    const wa = e.target.closest('.wa-btn');
+    if(wa){ logEvent('whatsapp_share'); return; }
+  });
+
+  // Feedback link
+  const fb = document.getElementById('feedbackLink');
+  fb.href = FEEDBACK_URL;
+  fb.addEventListener('click', ()=> logEvent('feedback_click'));
+
+  showDebug('✓ Buttons wired up successfully');
+}catch(e){
+  showDebug('Setup error: ' + e.message);
+}
+
+// ── Boot sequence (runs after all functions above are defined) ───────────────
+updateGroupLabel();
+if(!IS_CONFIGURED){
+  connectFirebase();
+  if(!userName) setTimeout(window.openName,600);
+} else if(groupCode){
+  connectFirebase();
+  logEvent('visit');
+  if(!userName) setTimeout(window.openName,600);
+} else {
+  document.getElementById('groupOv').classList.add('open');
+}
+
+</script>
+</body>
+</html>

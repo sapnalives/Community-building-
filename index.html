@@ -35,6 +35,7 @@ main{max-width:500px;margin:0 auto;padding:18px 14px 80px}
 .rb.going{background:rgba(98,240,160,.14);border-color:var(--green);color:var(--green)}
 .rb.maybe{background:rgba(240,196,98,.14);border-color:var(--yellow);color:var(--yellow)}
 .rb.nope{background:rgba(240,98,98,.12);border-color:var(--red);color:var(--red)}
+.rb.waitlist{background:rgba(124,106,247,.14);border-color:var(--purple);color:var(--purple)}
 .faces{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted)}
 .fstack{display:flex}
 .face{width:21px;height:21px;border-radius:50%;border:2px solid var(--surf);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:600;margin-left:-5px;color:#0f0f13}
@@ -171,6 +172,9 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
     </div>
     <div class="fl"><label>Note (optional)</label>
       <textarea id="fNote" placeholder="Any extra details…"></textarea>
+    </div>
+    <div class="fl"><label>Max spots (optional)</label>
+      <input id="fCapacity" type="number" min="1" max="50" placeholder="e.g. 3 — keeps playdates small">
     </div>
     <button class="sbtn" id="saveBtn">Add to calendar</button>
   </div>
@@ -395,12 +399,17 @@ function renderEventCard(ev, opts={}){
   const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
   const maybes = Object.entries(rsvps).filter(([,s])=>s==='maybe');
   const nopes  = Object.entries(rsvps).filter(([,s])=>s==='nope');
+  const waiters = Object.entries(rsvps).filter(([,s])=>s==='waitlist');
   const faces  = goers.slice(0,4).map(([n])=>
     `<div class="face" style="background:${nc(n)}">${ini(n)}</div>`).join('');
-  const countTxt = goers.length===0?'No one yet':`${goers.length} going`;
-  const namesHtml = (goers.length||maybes.length||nopes.length) ? `
+  const cap = ev.capacity || 0;
+  const countTxt = cap
+    ? `${goers.length}/${cap} spots${waiters.length?` · ${waiters.length} waiting`:''}`
+    : (goers.length===0?'No one yet':`${goers.length} going`);
+  const namesHtml = (goers.length||maybes.length||nopes.length||waiters.length) ? `
     <div class="names-row">
       ${goers.length?`<span class="ng"><span style="color:var(--green)">✓</span>${goers.map(([n])=>n).join(', ')}</span>`:''}
+      ${waiters.length?`<span class="ng"><span style="color:var(--purple)">🕓</span>${waiters.map(([n])=>n).join(', ')}</span>`:''}
       ${maybes.length?`<span class="ng"><span style="color:var(--yellow)">?</span>${maybes.map(([n])=>n).join(', ')}</span>`:''}
       ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
     </div>` : '';
@@ -408,6 +417,10 @@ function renderEventCard(ev, opts={}){
   const isOwner = ev.addedBy === userName;
   const d = new Date(ev.date+'T12:00:00');
   const waHref = single ? waLinkSingle(ev) : waLink(ev);
+
+  // "Going" button shows a waitlist state if spots are full and this person is waitlisted
+  const goingClass = mine==='going' ? 'going' : (mine==='waitlist' ? 'waitlist' : '');
+  const goingLabel = mine==='waitlist' ? '🕓 Waitlisted' : '✓ Going';
 
   return `
     <div class="card">
@@ -419,13 +432,14 @@ function renderEventCard(ev, opts={}){
             ${ev.time?`<span>🕐 ${fmtTime(ev.time)}</span>`:''}
             ${ev.place?`<span>📍 ${ev.place}</span>`:''}
             <span>by ${ev.addedBy}</span>
+            ${cap?`<span>👥 max ${cap}</span>`:''}
             ${(!single && viewMode==='all')?`<span>🔑 ${displayName(ev.groupCode)}</span>`:''}
           </div>
         </div>
       </div>
       ${ev.note?`<div class="enote">${ev.note}</div>`:''}
       <div class="rsvp-row">
-        <button class="rb ${mine==='going'?'going':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">✓ Going</button>
+        <button class="rb ${goingClass}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">${goingLabel}</button>
         <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
         <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
         <div class="faces">
@@ -490,8 +504,25 @@ window.rsvp = async function(fbKey, status){
     || (singleEvent && singleEvent.fbKey===fbKey ? singleEvent : null);
   if(!ev) return;
   const rsvps = {...(ev.rsvps||{})};
-  if(rsvps[userName]===status) delete rsvps[userName];
-  else rsvps[userName]=status;
+  const wasStatus = rsvps[userName];
+
+  if(wasStatus===status){
+    delete rsvps[userName]; // toggle off
+  } else if(status==='going' && ev.capacity){
+    const goingCount = Object.entries(rsvps).filter(([n,s])=>s==='going' && n!==userName).length;
+    if(goingCount >= ev.capacity){
+      rsvps[userName] = 'waitlist';
+      window.toast(`Spots full — you're on the waitlist 🕓`);
+      await update(ref(db, `groups/${ev.groupCode}/events/${fbKey}`), {rsvps});
+      logEvent('rsvp', {status:'waitlist'});
+      return;
+    } else {
+      rsvps[userName] = 'going';
+    }
+  } else {
+    rsvps[userName] = status;
+  }
+
   await update(ref(db, `groups/${ev.groupCode}/events/${fbKey}`), {rsvps});
   logEvent('rsvp', {status: rsvps[userName] || 'cleared'});
   window.toast('RSVP synced ✓ — everyone sees it live');
@@ -535,11 +566,14 @@ window.addEvent = async function(){
   btn.disabled=true;
   btn.innerHTML='<span class="spin"></span>Saving…';
 
+  const capacityVal = parseInt(document.getElementById('fCapacity').value, 10);
+
   const ev = {
     title, date,
     time:    document.getElementById('fTime').value,
     place:   document.getElementById('fPlace').value.trim(),
     note:    document.getElementById('fNote').value.trim(),
+    capacity: (capacityVal > 0) ? capacityVal : null,
     addedBy: userName,
     rsvps:   { [userName]: 'going' },
     created: Date.now()
@@ -551,7 +585,7 @@ window.addEvent = async function(){
   btn.disabled=false;
   btn.innerHTML='Add to calendar';
   window.closeAdd();
-  ['fTitle','fTime','fPlace','fNote'].forEach(id=>document.getElementById(id).value='');
+  ['fTitle','fTime','fPlace','fNote','fCapacity'].forEach(id=>document.getElementById(id).value='');
   window.toast('Event added 🎉 — opening WhatsApp…');
   setTimeout(()=>{ window.open(waHref,'_blank'); }, 900);
 }

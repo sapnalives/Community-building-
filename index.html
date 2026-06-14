@@ -16,7 +16,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 header{background:var(--surf);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .logo{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--accent)}
 .logo small{display:block;font-family:'DM Sans',sans-serif;font-size:.68rem;color:var(--muted);margin-top:1px;font-weight:400}
-#nameBtn{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:7px 13px;border-radius:20px;cursor:pointer}
+#nameBtn,#shareBtn{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:7px 13px;border-radius:20px;cursor:pointer}
 main{max-width:500px;margin:0 auto;padding:18px 14px 80px}
 .add-btn{width:100%;background:var(--accent);color:#0f0f13;border:none;border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:22px;display:flex;align-items:center;justify-content:center;gap:6px}
 .sec-label{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
@@ -84,7 +84,10 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 
 <header>
   <div class="logo">📅 our plans<small><span class="status-dot" id="dot"></span><span id="connLabel">connecting…</span> · <span id="groupLabel" style="cursor:pointer;text-decoration:underline"></span></small></div>
-  <button id="nameBtn">👤 <span id="nameLabel">Set name</span></button>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="shareBtn">🔗 Share</button>
+    <button id="nameBtn">👤 <span id="nameLabel">Set name</span></button>
+  </div>
 </header>
 
 <main>
@@ -107,8 +110,14 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
     <div id="viewToggleRow" style="display:none;margin-bottom:14px">
       <button id="viewToggleBtn" style="width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:12px;font-size:.84rem;font-weight:600;cursor:pointer"></button>
     </div>
-    <div class="sec-label">Coming up</div>
+    <div class="sec-label" id="listLabel">Coming up</div>
     <div class="events" id="list"></div>
+
+    <div style="margin-top:18px">
+      <button id="pastToggleBtn" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 14px;border-radius:12px;font-size:.82rem;font-weight:600;cursor:pointer">🕓 Show past events</button>
+      <div class="events" id="pastList" style="display:none;margin-top:12px"></div>
+    </div>
+
     <div style="text-align:center;margin-top:28px;padding-bottom:10px">
       <a id="feedbackLink" href="#" target="_blank" rel="noopener" style="color:var(--muted);font-size:.78rem;text-decoration:underline">💬 Got feedback or ideas? Tell us</a>
     </div>
@@ -177,6 +186,38 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
       <input id="fCapacity" type="number" min="1" max="50" placeholder="e.g. 3 — keeps playdates small">
     </div>
     <button class="sbtn" id="saveBtn">Add to calendar</button>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="ov mid" id="shareOv">
+  <div class="sheet card2">
+    <div class="stitle">Share <button class="xbtn" id="closeShareBtn">✕</button></div>
+
+    <div class="fl">
+      <label>📅 Full group calendar</label>
+      <div style="color:var(--muted);font-size:.78rem;margin-bottom:8px">Everyone with this link sees all events in "<span id="shareGroupName"></span>" and can RSVP.</div>
+      <div style="display:flex;gap:8px">
+        <a class="sbtn" id="shareCalWa" target="_blank" rel="noopener" style="background:var(--green);color:#0f0f13;flex:1;text-align:center;text-decoration:none">WhatsApp</a>
+        <button class="sbtn" id="shareCalCopy" style="width:auto;margin:0;padding:10px 14px">📋 Copy</button>
+      </div>
+    </div>
+
+    <div class="fl">
+      <label>📌 A single event only</label>
+      <div style="color:var(--muted);font-size:.78rem;margin-bottom:8px">Pick an upcoming event — recipients see just that event, not your full calendar.</div>
+      <select id="shareEventSelect" style="width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;margin-bottom:8px"></select>
+      <div style="display:flex;gap:8px">
+        <a class="sbtn" id="shareEventWa" target="_blank" rel="noopener" style="background:var(--green);color:#0f0f13;flex:1;text-align:center;text-decoration:none">WhatsApp</a>
+        <button class="sbtn" id="shareEventCopy" style="width:auto;margin:0;padding:10px 14px">📋 Copy</button>
+      </div>
+    </div>
+
+    <div class="fl">
+      <label>💬 Got feedback to share with us?</label>
+      <div style="color:var(--muted);font-size:.78rem;margin-bottom:8px">Send your thoughts or ideas about this app directly.</div>
+      <a class="sbtn" id="shareFeedback" target="_blank" rel="noopener" style="background:var(--surf2);color:var(--text);text-align:center;text-decoration:none;display:block">💬 Open feedback chat</a>
+    </div>
   </div>
 </div>
 
@@ -394,6 +435,7 @@ const WA_ICON = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><pa
 // just this one event instead of the whole group).
 function renderEventCard(ev, opts={}){
   const single = !!opts.single;
+  const past   = !!opts.past;
   const rsvps  = ev.rsvps||{};
   const mine   = rsvps[userName]||'';
   const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
@@ -423,7 +465,7 @@ function renderEventCard(ev, opts={}){
   const goingLabel = mine==='waitlist' ? '🕓 Waitlisted' : '✓ Going';
 
   return `
-    <div class="card">
+    <div class="card" style="${past?'opacity:.65':''}">
       <div class="card-top">
         <div class="datepill"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
         <div class="einfo">
@@ -438,24 +480,30 @@ function renderEventCard(ev, opts={}){
         </div>
       </div>
       ${ev.note?`<div class="enote">${ev.note}</div>`:''}
-      <div class="rsvp-row">
-        <button class="rb ${goingClass}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">${goingLabel}</button>
-        <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
-        <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
-        <div class="faces">
-          ${goers.length?`<div class="fstack">${faces}</div>`:''}
-          ${countTxt}
+      ${past ? `
+        <div class="faces" style="margin-top:8px">${goers.length?`<div class="fstack">${faces}</div>`:''}${countTxt}</div>
+        ${namesHtml}
+        ${(isOwner) ? `<div class="share-row"><button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Remove from history</button></div>` : ''}
+      ` : `
+        <div class="rsvp-row">
+          <button class="rb ${goingClass}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">${goingLabel}</button>
+          <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
+          <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
+          <div class="faces">
+            ${goers.length?`<div class="fstack">${faces}</div>`:''}
+            ${countTxt}
+          </div>
         </div>
-      </div>
-      ${namesHtml}
-      <div class="share-row">
-        <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">
-          ${WA_ICON}
-          Share to WhatsApp
-        </a>
-        ${!single ? `<a class="wa-btn" href="${waLinkSingle(ev)}" target="_blank" rel="noopener" data-action="share-single" style="background:var(--surf2);color:var(--text)">🔗 Share this event only</a>` : ''}
-        ${(isOwner && !single) ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
-      </div>
+        ${namesHtml}
+        <div class="share-row">
+          <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">
+            ${WA_ICON}
+            Share to WhatsApp
+          </a>
+          ${!single ? `<a class="wa-btn" href="${waLinkSingle(ev)}" target="_blank" rel="noopener" data-action="share-single" style="background:var(--surf2);color:var(--text)">🔗 Share this event only</a>` : ''}
+          ${(isOwner && !single) ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
+        </div>
+      `}
     </div>`;
 }
 
@@ -464,24 +512,60 @@ window.render = function render(){
   document.getElementById('nameLabel').textContent = userName || 'Set name';
   updateViewToggle();
   const now = new Date(); now.setHours(0,0,0,0);
-  const up = getEvents()
+  const all = getEvents();
+
+  const up = all
     .filter(e => new Date(e.date+'T12:00:00') >= now)
     .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const past = all
+    .filter(e => new Date(e.date+'T12:00:00') < now)
+    .sort((a,b)=>b.date.localeCompare(a.date)); // most recent first
 
   const list = document.getElementById('list');
   if(!up.length){
     list.innerHTML = `<div class="empty"><div class="ei">🗓️</div><p>No plans yet.<br>Be the one to suggest something!</p></div>`;
-    return;
+  } else {
+    let html='', lastMon='';
+    for(const ev of up){
+      const d   = new Date(ev.date+'T12:00:00');
+      const mon = d.toLocaleString('en',{month:'long',year:'numeric'});
+      if(mon!==lastMon){ html+=`<div class="month-sep">${mon}</div>`; lastMon=mon; }
+      html += renderEventCard(ev, {single:false});
+    }
+    list.innerHTML = html;
   }
 
-  let html='', lastMon='';
-  for(const ev of up){
-    const d   = new Date(ev.date+'T12:00:00');
-    const mon = d.toLocaleString('en',{month:'long',year:'numeric'});
-    if(mon!==lastMon){ html+=`<div class="month-sep">${mon}</div>`; lastMon=mon; }
-    html += renderEventCard(ev, {single:false});
+  // Past events (rendered, but hidden until toggled)
+  const pastList = document.getElementById('pastList');
+  const pastBtn  = document.getElementById('pastToggleBtn');
+  if(!past.length){
+    pastBtn.style.display='none';
+    pastList.style.display='none';
+  } else {
+    pastBtn.style.display='block';
+    let phtml='', lastPMon='';
+    for(const ev of past){
+      const d   = new Date(ev.date+'T12:00:00');
+      const mon = d.toLocaleString('en',{month:'long',year:'numeric'});
+      if(mon!==lastPMon){ phtml+=`<div class="month-sep">${mon}</div>`; lastPMon=mon; }
+      phtml += renderEventCard(ev, {single:false, past:true});
+    }
+    pastList.innerHTML = phtml;
+    pastBtn.textContent = pastList.style.display==='none'
+      ? `🕓 Show past events (${past.length})`
+      : `🔼 Hide past events (${past.length})`;
   }
-  list.innerHTML = html;
+}
+window.togglePastEvents = function(){
+  const pastList = document.getElementById('pastList');
+  const showing = pastList.style.display !== 'none';
+  pastList.style.display = showing ? 'none' : 'block';
+  const count = pastList.querySelectorAll('.card').length;
+  document.getElementById('pastToggleBtn').textContent = showing
+    ? `🕓 Show past events (${count})`
+    : `🔼 Hide past events (${count})`;
+  if(!showing) logEvent('view_past_events');
 }
 
 // ── Single-event (restricted) view ──────────────────────────────────────────
@@ -622,6 +706,7 @@ window.setGroup = function(code, isCreate){
   history.replaceState(null,'',url.toString());
   document.getElementById('groupOv').classList.remove('open');
   document.getElementById('groupCodeIn').value='';
+  document.getElementById('shareBtn').style.display='';
   updateGroupLabel();
   connectFirebase();
   logEvent(isCreate ? 'group_created' : 'group_joined');
@@ -684,6 +769,57 @@ window.closeGroupOv = function(){
   if(!groupCode) return; // group selection is mandatory on first visit
   document.getElementById('groupOv').classList.remove('open');
 }
+
+// ── Share panel — consolidates calendar / single-event / feedback sharing ────
+function waLinkCalendar(){
+  const link = groupLink(groupCode);
+  const name = displayName(groupCode);
+  const msg = `📅 Join our "${name}" group plans!\n\nSee upcoming events, RSVP, and add your own 👉 ${link}`;
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
+
+window.openShare = function(){
+  if(!groupCode){ window.toast('Pick a group first'); return; }
+
+  document.getElementById('shareGroupName').textContent = displayName(groupCode);
+  document.getElementById('shareCalWa').href = waLinkCalendar();
+  document.getElementById('shareFeedback').href = FEEDBACK_URL;
+
+  // Populate the upcoming-events dropdown
+  const now = new Date(); now.setHours(0,0,0,0);
+  const upcoming = (eventsByGroup[groupCode]||[])
+    .filter(e => new Date(e.date+'T12:00:00') >= now)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const sel = document.getElementById('shareEventSelect');
+  const waBtn = document.getElementById('shareEventWa');
+  const copyBtn = document.getElementById('shareEventCopy');
+
+  if(!upcoming.length){
+    sel.innerHTML = '<option value="">No upcoming events</option>';
+    sel.disabled = true; waBtn.style.opacity='.5'; waBtn.style.pointerEvents='none';
+    copyBtn.disabled = true;
+  } else {
+    sel.disabled = false; waBtn.style.opacity=''; waBtn.style.pointerEvents='';
+    copyBtn.disabled = false;
+    sel.innerHTML = upcoming.map(ev =>
+      `<option value="${ev.fbKey}">${fmtDateLong(ev.date)} — ${ev.title}</option>`
+    ).join('');
+    updateShareEventLink();
+  }
+
+  document.getElementById('shareOv').classList.add('open');
+}
+function updateShareEventLink(){
+  const sel = document.getElementById('shareEventSelect');
+  const ev = (eventsByGroup[groupCode]||[]).find(e=>e.fbKey===sel.value);
+  if(!ev) return;
+  document.getElementById('shareEventWa').href = waLinkSingle(ev);
+  document.getElementById('shareEventCopy').dataset.link = singleEventLink(ev);
+}
+window.closeShare = function(){
+  document.getElementById('shareOv').classList.remove('open');
+}
 let toastTimer;
 window.toast = function(msg){
   const el=document.getElementById('toast');
@@ -711,6 +847,7 @@ try{
   document.getElementById('groupLabel').addEventListener('click', window.openGroupSwitch);
   document.getElementById('closeGroupBtn').addEventListener('click', window.closeGroupOv);
   document.getElementById('viewToggleBtn').addEventListener('click', window.toggleView);
+  document.getElementById('pastToggleBtn').addEventListener('click', window.togglePastEvents);
 
   document.getElementById('groupOv').addEventListener('click', (e)=>{ if(groupCode) window.bgClose(e,'groupOv'); });
   document.getElementById('joinGroupBtn').addEventListener('click', ()=>{
@@ -750,11 +887,38 @@ try{
   }
   document.getElementById('list').addEventListener('click', handleCardClick);
   document.getElementById('singleEventCard').addEventListener('click', handleCardClick);
+  document.getElementById('pastList').addEventListener('click', handleCardClick);
 
   // Feedback link
   const fb = document.getElementById('feedbackLink');
   fb.href = FEEDBACK_URL;
   fb.addEventListener('click', ()=> logEvent('feedback_click'));
+
+  // Share panel
+  document.getElementById('shareBtn').addEventListener('click', window.openShare);
+  document.getElementById('closeShareBtn').addEventListener('click', window.closeShare);
+  document.getElementById('shareOv').addEventListener('click', (e)=>window.bgClose(e,'shareOv'));
+
+  document.getElementById('shareCalWa').addEventListener('click', ()=> logEvent('share_calendar_wa'));
+  document.getElementById('shareCalCopy').addEventListener('click', ()=>{
+    navigator.clipboard?.writeText(groupLink(groupCode)).then(()=>{
+      window.toast('Calendar link copied ✓');
+      logEvent('share_calendar_copy');
+    }).catch(()=> window.toast('Could not copy — long-press to copy manually'));
+  });
+
+  document.getElementById('shareEventSelect').addEventListener('change', updateShareEventLink);
+  document.getElementById('shareEventWa').addEventListener('click', ()=> logEvent('share_event_wa'));
+  document.getElementById('shareEventCopy').addEventListener('click', (e)=>{
+    const link = e.currentTarget.dataset.link;
+    if(!link) return;
+    navigator.clipboard?.writeText(link).then(()=>{
+      window.toast('Event link copied ✓');
+      logEvent('share_event_copy');
+    }).catch(()=> window.toast('Could not copy — long-press to copy manually'));
+  });
+
+  document.getElementById('shareFeedback').addEventListener('click', ()=> logEvent('feedback_click'));
 
 }catch(e){
   console.error('Setup error:', e.message);
@@ -770,6 +934,7 @@ if(!IS_CONFIGURED){
   document.getElementById('normalView').style.display='none';
   document.getElementById('singleEventView').style.display='block';
   document.getElementById('groupLabel').style.display='none';
+  document.getElementById('shareBtn').style.display='none';
   try{
     if(!app){ app = initializeApp(FIREBASE_CONFIG); db = getDatabase(app); }
     onValue(ref(db, `groups/${groupCode}/events/${sharedEventKey}`), snap => {
@@ -786,6 +951,7 @@ if(!IS_CONFIGURED){
   logEvent('visit');
   if(!userName) setTimeout(window.openName,600);
 } else {
+  document.getElementById('shareBtn').style.display='none';
   if(myGroups.length>0){
     if(!app){ app = initializeApp(FIREBASE_CONFIG); db = getDatabase(app); }
     myGroups.forEach(subscribeGroup); // loads names + events so the picker shows them

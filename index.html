@@ -167,22 +167,28 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 <!-- Add event modal -->
 <div class="ov" id="addOv">
   <div class="sheet">
-    <div class="stitle">New event <button class="xbtn" id="closeAddBtn">✕</button></div>
+    <div class="stitle"><span id="addTitle">New event</span> <button class="xbtn" id="closeAddBtn">✕</button></div>
     <div id="addToGroupNote" style="display:none;color:var(--muted);font-size:.78rem;margin:-6px 0 12px">Adding to group: <strong id="addToGroupLabel"></strong></div>
-    <div class="fl"><label>Event name</label>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button type="button" id="typeEventBtn" class="sbtn" style="margin:0;background:var(--accent);color:#0f0f13">📅 Hosting an event</button>
+      <button type="button" id="typeRequestBtn" class="sbtn" style="margin:0;background:var(--surf2);color:var(--text)">🙋 Looking for a playdate</button>
+    </div>
+
+    <div class="fl" id="titleField"><label id="titleLabel">Event name</label>
       <input id="fTitle" type="text" maxlength="60" placeholder="e.g. Friday dinner at Marco's">
     </div>
     <div class="twoCol">
-      <div class="fl"><label>Date</label><input id="fDate" type="date"></div>
+      <div class="fl"><label id="dateLabel">Date</label><input id="fDate" type="date"></div>
       <div class="fl"><label>Time (optional)</label><input id="fTime" type="time"></div>
     </div>
-    <div class="fl"><label>Location (optional)</label>
+    <div class="fl"><label id="placeLabel">Location (optional)</label>
       <input id="fPlace" type="text" maxlength="60" placeholder="e.g. Central Park">
     </div>
-    <div class="fl"><label>Note (optional)</label>
+    <div class="fl"><label id="noteLabel">Note (optional)</label>
       <textarea id="fNote" placeholder="Any extra details…"></textarea>
     </div>
-    <div class="fl"><label>Max spots (optional)</label>
+    <div class="fl" id="capacityField"><label>Max spots (optional)</label>
       <input id="fCapacity" type="number" min="1" max="50" placeholder="e.g. 3 — keeps playdates small">
     </div>
     <button class="sbtn" id="saveBtn">Add to calendar</button>
@@ -370,12 +376,15 @@ function waLinkSingle(ev){
   return buildWaMsg(ev, singleEventLink(ev));
 }
 function buildWaMsg(ev, siteUrl){
-  let msg = `📅 *${ev.title}*\n`;
+  const isReq = ev.type==='request';
+  let msg = isReq ? `🙋 *${ev.title}*\n` : `📅 *${ev.title}*\n`;
   msg += `🗓 ${fmtDateLong(ev.date)}`;
   if(ev.time) msg += ` at ${fmtTime(ev.time)}`;
   if(ev.place) msg += `\n📍 ${ev.place}`;
   if(ev.note)  msg += `\n💬 ${ev.note}`;
-  msg += `\n\nRSVP & see live updates 👉 ${siteUrl}`;
+  msg += isReq
+    ? `\n\nCan you host or want to join too? 👉 ${siteUrl}`
+    : `\n\nRSVP & see live updates 👉 ${siteUrl}`;
   return `https://wa.me/?text=${encodeURIComponent(msg)}`;
 }
 
@@ -436,25 +445,35 @@ const WA_ICON = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><pa
 function renderEventCard(ev, opts={}){
   const single = !!opts.single;
   const past   = !!opts.past;
+  const isRequest = ev.type==='request';
   const rsvps  = ev.rsvps||{};
   const mine   = rsvps[userName]||'';
   const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
   const maybes = Object.entries(rsvps).filter(([,s])=>s==='maybe');
   const nopes  = Object.entries(rsvps).filter(([,s])=>s==='nope');
   const waiters = Object.entries(rsvps).filter(([,s])=>s==='waitlist');
+  // For requests: "hosting" = someone offering to host, "interested" = also free/keen
+  const hosts  = Object.entries(rsvps).filter(([,s])=>s==='hosting');
+  const interested = Object.entries(rsvps).filter(([,s])=>s==='interested');
   const faces  = goers.slice(0,4).map(([n])=>
     `<div class="face" style="background:${nc(n)}">${ini(n)}</div>`).join('');
   const cap = ev.capacity || 0;
   const countTxt = cap
     ? `${goers.length}/${cap} spots${waiters.length?` · ${waiters.length} waiting`:''}`
     : (goers.length===0?'No one yet':`${goers.length} going`);
-  const namesHtml = (goers.length||maybes.length||nopes.length||waiters.length) ? `
-    <div class="names-row">
-      ${goers.length?`<span class="ng"><span style="color:var(--green)">✓</span>${goers.map(([n])=>n).join(', ')}</span>`:''}
-      ${waiters.length?`<span class="ng"><span style="color:var(--purple)">🕓</span>${waiters.map(([n])=>n).join(', ')}</span>`:''}
-      ${maybes.length?`<span class="ng"><span style="color:var(--yellow)">?</span>${maybes.map(([n])=>n).join(', ')}</span>`:''}
-      ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
-    </div>` : '';
+  const namesHtml = isRequest
+    ? ((hosts.length||interested.length) ? `
+      <div class="names-row">
+        ${hosts.length?`<span class="ng"><span style="color:var(--green)">🏠</span>${hosts.map(([n])=>n).join(', ')}</span>`:''}
+        ${interested.length?`<span class="ng"><span style="color:var(--purple)">🙋</span>${interested.map(([n])=>n).join(', ')}</span>`:''}
+      </div>` : '')
+    : ((goers.length||maybes.length||nopes.length||waiters.length) ? `
+      <div class="names-row">
+        ${goers.length?`<span class="ng"><span style="color:var(--green)">✓</span>${goers.map(([n])=>n).join(', ')}</span>`:''}
+        ${waiters.length?`<span class="ng"><span style="color:var(--purple)">🕓</span>${waiters.map(([n])=>n).join(', ')}</span>`:''}
+        ${maybes.length?`<span class="ng"><span style="color:var(--yellow)">?</span>${maybes.map(([n])=>n).join(', ')}</span>`:''}
+        ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
+      </div>` : '');
 
   const isOwner = ev.addedBy === userName;
   const d = new Date(ev.date+'T12:00:00');
@@ -465,25 +484,40 @@ function renderEventCard(ev, opts={}){
   const goingLabel = mine==='waitlist' ? '🕓 Waitlisted' : '✓ Going';
 
   return `
-    <div class="card" style="${past?'opacity:.65':''}">
+    <div class="card" style="${past?'opacity:.65;':''}${isRequest?`border-color:var(--purple);`:''}">
       <div class="card-top">
-        <div class="datepill"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
+        <div class="datepill" style="${isRequest?'background:var(--purple);color:#0f0f13;':''}"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
         <div class="einfo">
-          <div class="etitle">${ev.title}</div>
+          <div class="etitle">${isRequest?'🙋 ':''}${ev.title}</div>
           <div class="emeta">
             ${ev.time?`<span>🕐 ${fmtTime(ev.time)}</span>`:''}
             ${ev.place?`<span>📍 ${ev.place}</span>`:''}
             <span>by ${ev.addedBy}</span>
             ${cap?`<span>👥 max ${cap}</span>`:''}
+            ${isRequest?`<span style="color:var(--purple)">Playdate request</span>`:''}
             ${(!single && viewMode==='all')?`<span>🔑 ${displayName(ev.groupCode)}</span>`:''}
           </div>
         </div>
       </div>
       ${ev.note?`<div class="enote">${ev.note}</div>`:''}
       ${past ? `
-        <div class="faces" style="margin-top:8px">${goers.length?`<div class="fstack">${faces}</div>`:''}${countTxt}</div>
+        <div class="faces" style="margin-top:8px">${isRequest ? '' : (goers.length?`<div class="fstack">${faces}</div>`:'')}${isRequest?'':countTxt}</div>
         ${namesHtml}
         ${(isOwner) ? `<div class="share-row"><button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Remove from history</button></div>` : ''}
+      ` : isRequest ? `
+        <div class="rsvp-row">
+          <button class="rb ${mine==='hosting'?'going':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="hosting">🏠 I can host!</button>
+          <button class="rb ${mine==='interested'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="interested">🙋 Me too!</button>
+        </div>
+        ${namesHtml}
+        <div class="share-row">
+          <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">
+            ${WA_ICON}
+            Share to WhatsApp
+          </a>
+          ${!single ? `<a class="wa-btn" href="${waLinkSingle(ev)}" target="_blank" rel="noopener" data-action="share-single" style="background:var(--surf2);color:var(--text)">🔗 Share this only</a>` : ''}
+          ${(isOwner && !single) ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
+        </div>
       ` : `
         <div class="rsvp-row">
           <button class="rb ${goingClass}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">${goingLabel}</button>
@@ -623,9 +657,29 @@ window.deleteEvent = async function(fbKey){
 }
 
 // ── Add Event ─────────────────────────────────────────────────────────────────
+let addType = 'event'; // 'event' | 'request'
+window.setAddType = function(type){
+  addType = type;
+  const isReq = type==='request';
+  document.getElementById('typeEventBtn').style.background   = isReq ? 'var(--surf2)' : 'var(--accent)';
+  document.getElementById('typeEventBtn').style.color         = isReq ? 'var(--text)' : '#0f0f13';
+  document.getElementById('typeRequestBtn').style.background  = isReq ? 'var(--accent)' : 'var(--surf2)';
+  document.getElementById('typeRequestBtn').style.color        = isReq ? '#0f0f13' : 'var(--text)';
+
+  document.getElementById('addTitle').textContent = isReq ? 'Looking for a playdate' : 'New event';
+  document.getElementById('titleLabel').textContent = isReq ? 'What are you free for? (optional)' : 'Event name';
+  document.getElementById('fTitle').placeholder = isReq ? 'e.g. Free this afternoon, anyone up for a playdate?' : "e.g. Friday dinner at Marco's";
+  document.getElementById('dateLabel').textContent = isReq ? "When are you free?" : 'Date';
+  document.getElementById('placeLabel').textContent = isReq ? 'Preferred area (optional)' : 'Location (optional)';
+  document.getElementById('noteLabel').textContent = isReq ? 'Note (optional)' : 'Note (optional)';
+  document.getElementById('capacityField').style.display = isReq ? 'none' : 'block';
+  document.getElementById('saveBtn').textContent = isReq ? 'Post request' : 'Add to calendar';
+}
+
 window.openAdd = function(){
   if(!userName){ window.openName(); return; }
   document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  window.setAddType('event');
   const note = document.getElementById('addToGroupNote');
   if(myGroups.length>1){
     note.style.display='block';
@@ -640,9 +694,12 @@ window.closeAdd = function(){
 }
 
 window.addEvent = async function(){
-  const title = document.getElementById('fTitle').value.trim();
+  const isReq = addType==='request';
+  let title = document.getElementById('fTitle').value.trim();
   const date  = document.getElementById('fDate').value;
-  if(!title||!date){ window.toast('Add a name and date!'); return; }
+  if(!date){ window.toast(isReq ? 'Add a date you\'re free!' : 'Add a name and date!'); return; }
+  if(!isReq && !title){ window.toast('Add a name and date!'); return; }
+  if(isReq && !title) title = `${userName} is looking for a playdate`;
 
   if(!IS_CONFIGURED || !db){ window.toast('Firebase not configured yet'); return; }
 
@@ -654,23 +711,24 @@ window.addEvent = async function(){
 
   const ev = {
     title, date,
+    type:    isReq ? 'request' : 'event',
     time:    document.getElementById('fTime').value,
     place:   document.getElementById('fPlace').value.trim(),
     note:    document.getElementById('fNote').value.trim(),
-    capacity: (capacityVal > 0) ? capacityVal : null,
+    capacity: (!isReq && capacityVal > 0) ? capacityVal : null,
     addedBy: userName,
-    rsvps:   { [userName]: 'going' },
+    rsvps:   isReq ? {} : { [userName]: 'going' },
     created: Date.now()
   };
 
   const newRef = await push(eventsRef, ev);
-  logEvent('event_added');
+  logEvent(isReq ? 'request_added' : 'event_added');
   const waHref = waLink(ev);
   btn.disabled=false;
-  btn.innerHTML='Add to calendar';
+  btn.innerHTML = isReq ? 'Post request' : 'Add to calendar';
   window.closeAdd();
   ['fTitle','fTime','fPlace','fNote','fCapacity'].forEach(id=>document.getElementById(id).value='');
-  window.toast('Event added 🎉 — opening WhatsApp…');
+  window.toast((isReq?'Request posted 🙋':'Event added 🎉') + ' — opening WhatsApp…');
   setTimeout(()=>{ window.open(waHref,'_blank'); }, 900);
 }
 
@@ -832,6 +890,8 @@ window.toast = function(msg){
 try{
   document.getElementById('nameBtn').addEventListener('click', window.openName);
   document.getElementById('addEventBtn').addEventListener('click', window.openAdd);
+  document.getElementById('typeEventBtn').addEventListener('click', ()=>window.setAddType('event'));
+  document.getElementById('typeRequestBtn').addEventListener('click', ()=>window.setAddType('request'));
   document.getElementById('saveNameBtn').addEventListener('click', window.saveName);
   document.getElementById('closeAddBtn').addEventListener('click', window.closeAdd);
   document.getElementById('saveBtn').addEventListener('click', window.addEvent);

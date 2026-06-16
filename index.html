@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Our Plans 📅</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f0f13">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Our Plans">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:wght@700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -83,7 +90,7 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 <body>
 
 <header>
-  <div class="logo">📅 our plans<small><span class="status-dot" id="dot"></span><span id="connLabel">connecting…</span> · <span id="groupLabel" style="cursor:pointer;text-decoration:underline"></span></small></div>
+  <a href="/" id="homeLogo" class="logo" style="text-decoration:none;color:inherit;cursor:pointer">📅 our plans<small><span class="status-dot" id="dot"></span><span id="connLabel">connecting…</span> · <span id="groupLabel" style="cursor:pointer;text-decoration:underline"></span></small></a>
   <div style="display:flex;gap:8px;align-items:center">
     <button id="shareBtn">🔗 Share</button>
     <button id="nameBtn">👤 <span id="nameLabel">Set name</span></button>
@@ -904,7 +911,11 @@ try{
   document.getElementById('addOv').addEventListener('click', (e)=>window.bgClose(e,'addOv'));
 
   // Group modal
-  document.getElementById('groupLabel').addEventListener('click', window.openGroupSwitch);
+  document.getElementById('groupLabel').addEventListener('click', (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    window.openGroupSwitch();
+  });
   document.getElementById('closeGroupBtn').addEventListener('click', window.closeGroupOv);
   document.getElementById('viewToggleBtn').addEventListener('click', window.toggleView);
   document.getElementById('pastToggleBtn').addEventListener('click', window.togglePastEvents);
@@ -1018,6 +1029,17 @@ if(!IS_CONFIGURED){
   }
   renderMyGroupsList();
   document.getElementById('groupOv').classList.add('open');
+}
+
+// ── PWA: register service worker for faster repeat loads ─────────────────────
+// (registered last, after the page has done everything it needs — doesn't
+// block or affect Firebase data, which is always fetched fresh)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(err => {
+      console.error('Service worker registration failed:', err);
+    });
+  });
 }
 
 </script>

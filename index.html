@@ -198,6 +198,12 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
     <div class="fl" id="capacityField"><label>Max spots (optional)</label>
       <input id="fCapacity" type="number" min="1" max="50" placeholder="e.g. 3 — keeps playdates small">
     </div>
+    <div class="fl" id="privateField" style="display:flex;align-items:flex-start;gap:10px">
+      <input id="fPrivate" type="checkbox" style="width:18px;height:18px;margin-top:2px;accent-color:var(--accent)">
+      <label for="fPrivate" style="margin:0;cursor:pointer">
+        🔒 Private RSVPs — for birthdays etc. Only you (the host) can see who's responded; guests only see their own RSVP.
+      </label>
+    </div>
     <button class="sbtn" id="saveBtn">Add to calendar</button>
   </div>
 </div>
@@ -453,6 +459,9 @@ function renderEventCard(ev, opts={}){
   const single = !!opts.single;
   const past   = !!opts.past;
   const isRequest = ev.type==='request';
+  const isOwner = ev.addedBy === userName;
+  const isPrivate = !!ev.private;
+  const canSeeRsvps = !isPrivate || isOwner; // host always sees everything; others see only their own status on private events
   const rsvps  = ev.rsvps||{};
   const mine   = rsvps[userName]||'';
   const goers  = Object.entries(rsvps).filter(([,s])=>s==='going');
@@ -465,10 +474,12 @@ function renderEventCard(ev, opts={}){
   const faces  = goers.slice(0,4).map(([n])=>
     `<div class="face" style="background:${nc(n)}">${ini(n)}</div>`).join('');
   const cap = ev.capacity || 0;
-  const countTxt = cap
-    ? `${goers.length}/${cap} spots${waiters.length?` · ${waiters.length} waiting`:''}`
-    : (goers.length===0?'No one yet':`${goers.length} going`);
-  const namesHtml = isRequest
+  const countTxt = !canSeeRsvps
+    ? (mine ? `You're ${mine==='going'?'going':mine==='maybe'?'down as maybe':mine==='waitlist'?'on the waitlist':'not going'}` : 'RSVPs are private for this event')
+    : (cap
+      ? `${goers.length}/${cap} spots${waiters.length?` · ${waiters.length} waiting`:''}`
+      : (goers.length===0?'No one yet':`${goers.length} going`));
+  const namesHtml = !canSeeRsvps ? '' : isRequest
     ? ((hosts.length||interested.length) ? `
       <div class="names-row">
         ${hosts.length?`<span class="ng"><span style="color:var(--green)">🏠</span>${hosts.map(([n])=>n).join(', ')}</span>`:''}
@@ -482,7 +493,6 @@ function renderEventCard(ev, opts={}){
         ${nopes.length?`<span class="ng"><span style="color:var(--red)">✕</span>${nopes.map(([n])=>n).join(', ')}</span>`:''}
       </div>` : '');
 
-  const isOwner = ev.addedBy === userName;
   const d = new Date(ev.date+'T12:00:00');
   const waHref = single ? waLinkSingle(ev) : waLink(ev);
 
@@ -502,13 +512,14 @@ function renderEventCard(ev, opts={}){
             <span>by ${ev.addedBy}</span>
             ${cap?`<span>👥 max ${cap}</span>`:''}
             ${isRequest?`<span style="color:var(--purple)">Playdate request</span>`:''}
+            ${isPrivate?`<span style="color:var(--accent)">🔒 Private RSVPs</span>`:''}
             ${(!single && viewMode==='all')?`<span>🔑 ${displayName(ev.groupCode)}</span>`:''}
           </div>
         </div>
       </div>
       ${ev.note?`<div class="enote">${ev.note}</div>`:''}
       ${past ? `
-        <div class="faces" style="margin-top:8px">${isRequest ? '' : (goers.length?`<div class="fstack">${faces}</div>`:'')}${isRequest?'':countTxt}</div>
+        <div class="faces" style="margin-top:8px">${(isRequest || !canSeeRsvps) ? '' : (goers.length?`<div class="fstack">${faces}</div>`:'')}${isRequest?'':countTxt}</div>
         ${namesHtml}
         ${(isOwner) ? `<div class="share-row"><button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Remove from history</button></div>` : ''}
       ` : isRequest ? `
@@ -531,7 +542,7 @@ function renderEventCard(ev, opts={}){
           <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
           <button class="rb ${mine==='nope'?'nope':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="nope">✕ Nope</button>
           <div class="faces">
-            ${goers.length?`<div class="fstack">${faces}</div>`:''}
+            ${(canSeeRsvps && goers.length)?`<div class="fstack">${faces}</div>`:''}
             ${countTxt}
           </div>
         </div>
@@ -680,12 +691,14 @@ window.setAddType = function(type){
   document.getElementById('placeLabel').textContent = isReq ? 'Preferred area (optional)' : 'Location (optional)';
   document.getElementById('noteLabel').textContent = isReq ? 'Note (optional)' : 'Note (optional)';
   document.getElementById('capacityField').style.display = isReq ? 'none' : 'block';
+  document.getElementById('privateField').style.display = isReq ? 'none' : 'flex';
   document.getElementById('saveBtn').textContent = isReq ? 'Post request' : 'Add to calendar';
 }
 
 window.openAdd = function(){
   if(!userName){ window.openName(); return; }
   document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('fPrivate').checked = false;
   window.setAddType('event');
   const note = document.getElementById('addToGroupNote');
   if(myGroups.length>1){
@@ -715,6 +728,7 @@ window.addEvent = async function(){
   btn.innerHTML='<span class="spin"></span>Saving…';
 
   const capacityVal = parseInt(document.getElementById('fCapacity').value, 10);
+  const isPrivate = !isReq && document.getElementById('fPrivate').checked;
 
   const ev = {
     title, date,
@@ -723,6 +737,7 @@ window.addEvent = async function(){
     place:   document.getElementById('fPlace').value.trim(),
     note:    document.getElementById('fNote').value.trim(),
     capacity: (!isReq && capacityVal > 0) ? capacityVal : null,
+    private: isPrivate || null,
     addedBy: userName,
     rsvps:   isReq ? {} : { [userName]: 'going' },
     created: Date.now()
@@ -735,6 +750,7 @@ window.addEvent = async function(){
   btn.innerHTML = isReq ? 'Post request' : 'Add to calendar';
   window.closeAdd();
   ['fTitle','fTime','fPlace','fNote','fCapacity'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fPrivate').checked = false;
   window.toast((isReq?'Request posted 🙋':'Event added 🎉') + ' — opening WhatsApp…');
   setTimeout(()=>{ window.open(waHref,'_blank'); }, 900);
 }

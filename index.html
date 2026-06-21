@@ -6,6 +6,8 @@
 <title>Our Plans 📅</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0f0f13">
+<meta name="application-name" content="Our Plans">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -39,6 +41,11 @@ main{max-width:500px;margin:0 auto;padding:18px 14px 80px}
 .enote{font-size:.8rem;color:var(--muted);padding:0 14px 10px;line-height:1.5}
 .rsvp-row{border-top:1px solid var(--border);padding:9px 14px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .rb{border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;padding:5px 11px;border-radius:20px;cursor:pointer;transition:all .15s}
+/* Cross-browser date picker fix — Android Chrome shows native picker fine,
+   but needs explicit color so text isn't invisible on dark backgrounds */
+input[type="date"],input[type="time"]{color-scheme:dark;color:var(--text)}
+/* Checkbox — accent-color works in modern browsers; fallback for older Android */
+input[type="checkbox"]{accent-color:var(--accent);cursor:pointer}
 .rb.going{background:rgba(98,240,160,.14);border-color:var(--green);color:var(--green)}
 .rb.maybe{background:rgba(240,196,98,.14);border-color:var(--yellow);color:var(--yellow)}
 .rb.nope{background:rgba(240,98,98,.12);border-color:var(--red);color:var(--red)}
@@ -302,7 +309,24 @@ function logEvent(action, extra={}){
   } catch(e){ /* never let analytics break the app */ }
 }
 
-// ── Groups ───────────────────────────────────────────────────────────────────
+// ── Cross-browser clipboard helper ────────────────────────────────────────────
+// navigator.clipboard requires HTTPS + user gesture, and isn't available in
+// all Android WebViews or older Chrome. Falls back to execCommand for those.
+function copyToClipboard(text){
+  if(navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(text);
+  }
+  // Legacy fallback (Android WebView, older Chrome)
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+  document.body.appendChild(el);
+  el.focus(); el.select();
+  try{ document.execCommand('copy'); }
+  catch(e){ /* silent */ }
+  document.body.removeChild(el);
+  return Promise.resolve();
+}
 const ADJ  = ['sunny','happy','cosy','breezy','golden','merry','jolly','swift','bright','lucky','calm','vivid','cheerful','quiet','clever'];
 const NOUN = ['tiger','panda','otter','falcon','maple','comet','willow','harbor','meadow','ember','river','sparrow','badger','lantern','pebble'];
 function genGroupCode(){
@@ -537,6 +561,7 @@ function renderEventCard(ev, opts={}){
           ${(isOwner && !single) ? `<button class="del-btn" data-action="delete" data-fbkey="${ev.fbKey}">🗑 Delete</button>` : ''}
         </div>
       ` : `
+        ${!userName ? `<div style="background:var(--surf2);border:1px solid var(--accent);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:.82rem;color:var(--accent);cursor:pointer" data-action="open-name">👆 Tap here to set your name, then RSVP</div>` : ''}
         <div class="rsvp-row">
           <button class="rb ${goingClass}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="going">${goingLabel}</button>
           <button class="rb ${mine==='maybe'?'maybe':''}" data-action="rsvp" data-fbkey="${ev.fbKey}" data-status="maybe">? Maybe</button>
@@ -751,8 +776,7 @@ window.addEvent = async function(){
   window.closeAdd();
   ['fTitle','fTime','fPlace','fNote','fCapacity'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fPrivate').checked = false;
-  window.toast((isReq?'Request posted 🙋':'Event added 🎉') + ' — opening WhatsApp…');
-  setTimeout(()=>{ window.open(waHref,'_blank'); }, 900);
+  window.toast((isReq?'Request posted 🙋 — tap "Share to WhatsApp" on the card to notify your group':'Event added 🎉 — tap "Share to WhatsApp" on the card to notify your group'));
 }
 
 // ── Name ──────────────────────────────────────────────────────────────────────
@@ -793,7 +817,7 @@ window.setGroup = function(code, isCreate){
   logEvent(isCreate ? 'group_created' : 'group_joined');
 
   if(isCreate){
-    navigator.clipboard?.writeText(groupLink(code)).then(()=>{
+    copyToClipboard(groupLink(code)).then(()=>{
       window.toast(`Group created! Link copied — share it 🎉`);
     }).catch(()=>{
       window.toast(`Group created: ${code}`);
@@ -947,7 +971,7 @@ try{
     if(e.key==='Enter') document.getElementById('joinGroupBtn').click();
   });
   document.getElementById('copyGroupLinkBtn').addEventListener('click', ()=>{
-    navigator.clipboard?.writeText(groupLink(groupCode)).then(()=>{
+    copyToClipboard(groupLink(groupCode)).then(()=>{
       window.toast('Link copied ✓');
     }).catch(()=>{ window.toast('Could not copy — long-press to copy manually'); });
   });
@@ -967,6 +991,8 @@ try{
     if(rb){ window.rsvp(rb.dataset.fbkey, rb.dataset.status); return; }
     const del = e.target.closest('[data-action="delete"]');
     if(del){ window.deleteEvent(del.dataset.fbkey); return; }
+    const openName = e.target.closest('[data-action="open-name"]');
+    if(openName){ window.openName(); return; }
     const shareSingle = e.target.closest('[data-action="share-single"]');
     if(shareSingle){ logEvent('whatsapp_share_single'); return; }
     const wa = e.target.closest('.wa-btn');
@@ -988,7 +1014,7 @@ try{
 
   document.getElementById('shareCalWa').addEventListener('click', ()=> logEvent('share_calendar_wa'));
   document.getElementById('shareCalCopy').addEventListener('click', ()=>{
-    navigator.clipboard?.writeText(groupLink(groupCode)).then(()=>{
+    copyToClipboard(groupLink(groupCode)).then(()=>{
       window.toast('Calendar link copied ✓');
       logEvent('share_calendar_copy');
     }).catch(()=> window.toast('Could not copy — long-press to copy manually'));
@@ -999,7 +1025,7 @@ try{
   document.getElementById('shareEventCopy').addEventListener('click', (e)=>{
     const link = e.currentTarget.dataset.link;
     if(!link) return;
-    navigator.clipboard?.writeText(link).then(()=>{
+    copyToClipboard(link).then(()=>{
       window.toast('Event link copied ✓');
       logEvent('share_event_copy');
     }).catch(()=> window.toast('Could not copy — long-press to copy manually'));
